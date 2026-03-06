@@ -329,7 +329,7 @@
                 </button>
             </div>
             <div class="disclaimer">
-                免费版 · 消息可能不及时回复
+                中国大陆区免费版 · AI开源代码制作，延迟较高，请耐心等待
             </div>
         </div>
     </div>
@@ -552,7 +552,7 @@
                 // 设置一个较长的思考时间（10秒后如果还没回复，提示可能慢了）
                 thinkingTimeout = setTimeout(() => {
                     if (isThinking) {
-                        storageNote.innerHTML = '<i class="fa-regular fa-clock"></i> AI 思考时间较长，请稍等...';
+                        storageNote.innerHTML = '<i class="fa-regular fa-clock"></i> AI 思考时间较长或延迟较高，请稍等...';
                         storageNote.style.borderColor = '#ff9800';
                         storageNote.style.color = '#ff9800';
                     }
