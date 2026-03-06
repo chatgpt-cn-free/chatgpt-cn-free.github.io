@@ -217,28 +217,68 @@
             margin-top: 10px;
         }
 
-        /* 加载动画 */
-        .typing-indicator {
+        /* ========= 思考动画（ChatGPT风格） ========= */
+        .thinking-row {
+            display: flex;
+            padding: 16px 16px;
+            width: 100%;
+            background-color: #444654;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            opacity: 0;
+            transform: translateY(-10px);
+            animation: slideIn 0.3s ease forwards;
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .thinking-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .thinking-dots {
             display: flex;
             gap: 4px;
-            padding: 12px 0;
-            align-items: center;
+            padding: 8px 0;
         }
 
-        .typing-indicator span {
+        .thinking-dots span {
             width: 8px;
             height: 8px;
-            background-color: #9b9b9b;
+            background-color: #19c37d;
             border-radius: 50%;
-            animation: bounce 1.5s infinite;
+            opacity: 0.6;
+            animation: thinkingBounce 1.4s infinite ease-in-out;
         }
 
-        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        .thinking-dots span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        .thinking-dots span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
 
-        @keyframes bounce {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-6px); }
+        @keyframes thinkingBounce {
+            0%, 80%, 100% { 
+                transform: scale(0.6);
+                opacity: 0.4;
+            }
+            40% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .thinking-text {
+            color: #ececf1;
+            font-size: 14px;
+            opacity: 0.9;
         }
 
         /* 临时消息存储提示 */
@@ -289,7 +329,7 @@
                 </button>
             </div>
             <div class="disclaimer">
-                中国大陆区免费版 ·延迟较高，无反应时可尝试刷新页面
+                免费版 · 消息可能不及时回复
             </div>
         </div>
     </div>
@@ -314,6 +354,8 @@
 
             // 当前消息列表
             let messages = [];
+            let thinkingTimeout = null;
+            let isThinking = false;
 
             // 加载已有消息
             function loadMessages() {
@@ -376,6 +418,11 @@
                         appendMessageToDOM(msg.role, msg.content, msg.time);
                     });
                 }
+                
+                // 如果正在思考，添加思考动画
+                if (isThinking) {
+                    addThinkingAnimation();
+                }
             }
 
             // 添加欢迎消息
@@ -430,6 +477,49 @@
                 messageGroup.appendChild(rowDiv);
             }
 
+            // 添加思考动画
+            function addThinkingAnimation() {
+                const thinkingRow = document.createElement('div');
+                thinkingRow.className = 'message-row assistant-row thinking-row';
+                thinkingRow.id = 'thinkingIndicator';
+
+                // 头像
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'message-avatar assistant-avatar-icon';
+                avatarDiv.innerHTML = '<i class="fa-regular fa-sparkles"></i>';
+
+                // 内容区域
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+
+                const thinkingDiv = document.createElement('div');
+                thinkingDiv.className = 'thinking-content';
+                
+                const dotsDiv = document.createElement('div');
+                dotsDiv.className = 'thinking-dots';
+                dotsDiv.innerHTML = '<span></span><span></span><span></span>';
+                
+                const textSpan = document.createElement('span');
+                textSpan.className = 'thinking-text';
+                textSpan.innerText = 'ChatGPT 正在输入...';
+
+                thinkingDiv.appendChild(dotsDiv);
+                thinkingDiv.appendChild(textSpan);
+                contentDiv.appendChild(thinkingDiv);
+
+                thinkingRow.appendChild(avatarDiv);
+                thinkingRow.appendChild(contentDiv);
+                messageGroup.appendChild(thinkingRow);
+            }
+
+            // 移除思考动画
+            function removeThinkingAnimation() {
+                const thinking = document.getElementById('thinkingIndicator');
+                if (thinking) {
+                    thinking.remove();
+                }
+            }
+
             // 发送用户消息
             function sendUserMessage() {
                 const msg = userInput.value.trim();
@@ -440,10 +530,33 @@
                 userInput.value = '';
                 userInput.style.height = 'auto';
 
+                // 清除之前的思考定时器
+                if (thinkingTimeout) {
+                    clearTimeout(thinkingTimeout);
+                }
+
+                // 显示思考动画
+                isThinking = true;
+                addThinkingAnimation();
+                
+                // 滚动到底部显示动画
+                setTimeout(() => {
+                    messageContainer.scrollTop = messageContainer.scrollHeight;
+                }, 50);
+
                 // 更新提示
-                storageNote.innerHTML = '<i class="fa-regular fa-hourglass-half"></i> 等待ai回复...';
-                storageNote.style.borderColor = '#ff9800';
-                storageNote.style.color = '#ff9800';
+                storageNote.innerHTML = '<i class="fa-regular fa-hourglass-half"></i> AI 思考中...';
+                storageNote.style.borderColor = '#19c37d';
+                storageNote.style.color = '#19c37d';
+
+                // 设置一个较长的思考时间（10秒后如果还没回复，提示可能慢了）
+                thinkingTimeout = setTimeout(() => {
+                    if (isThinking) {
+                        storageNote.innerHTML = '<i class="fa-regular fa-clock"></i> AI 思考时间较长，请稍等...';
+                        storageNote.style.borderColor = '#ff9800';
+                        storageNote.style.color = '#ff9800';
+                    }
+                }, 8000);
             }
 
             // 检查新消息（来自admin的回复）
@@ -453,9 +566,19 @@
                     if (saved) {
                         const data = JSON.parse(saved);
                         if (data.messages && data.messages.length > messages.length) {
-                            // 发现有新消息
+                            // 发现有新消息（管理员回复了）
                             const oldCount = messages.length;
                             messages = data.messages;
+                            
+                            // 移除思考动画
+                            if (isThinking) {
+                                isThinking = false;
+                                removeThinkingAnimation();
+                                if (thinkingTimeout) {
+                                    clearTimeout(thinkingTimeout);
+                                }
+                            }
+                            
                             renderMessages();
                             
                             // 如果有新助手消息，更新提示
@@ -471,6 +594,11 @@
                                     storageNote.style.color = '#ff9800';
                                 }, 3000);
                             }
+                            
+                            // 滚动到底部
+                            setTimeout(() => {
+                                messageContainer.scrollTop = messageContainer.scrollHeight;
+                            }, 100);
                         }
                     }
                 } catch (e) {
