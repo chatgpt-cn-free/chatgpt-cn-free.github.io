@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>admin · 控制端</title>
-    <!-- Font Awesome -->
+    <title>admin · 控制台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- 添加 Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -21,7 +25,6 @@
             color: #ececf1;
         }
 
-        /* 头部 */
         .header {
             background: #202123;
             border-radius: 20px;
@@ -81,7 +84,6 @@
             100% { opacity: 1; }
         }
 
-        /* 消息列表 */
         .messages-container {
             background: #202123;
             border-radius: 20px;
@@ -129,6 +131,7 @@
             align-items: center;
             gap: 15px;
             margin-bottom: 12px;
+            flex-wrap: wrap;
         }
 
         .device-tag {
@@ -156,12 +159,11 @@
             color: #ececf1;
             font-size: 15px;
             line-height: 1.6;
-            padding-left: 35px;
+            padding-left: 0;
             white-space: pre-wrap;
             word-break: break-word;
         }
 
-        /* 回复区域 */
         .reply-area {
             background: #202123;
             border-radius: 20px;
@@ -226,7 +228,6 @@
             transform: scale(0.95);
         }
 
-        /* 快捷短语 */
         .quick-phrases {
             display: flex;
             gap: 10px;
@@ -251,7 +252,6 @@
             border-color: #19c37d;
         }
 
-        /* 空状态 */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -264,7 +264,6 @@
             opacity: 0.5;
         }
 
-        /* 计数器 */
         .counter {
             background: #19c37d;
             color: #202123;
@@ -280,13 +279,13 @@
         <div class="header-left">
             <i class="fa-regular fa-gauge-high"></i>
             <div>
-                <h1>控制端</h1>
-                <p>所有设备的消息都会显示在这里</p>
+                <h1>控制台 · 管理员</h1>
+                <p>所有设备的消息实时同步</p>
             </div>
         </div>
         <div class="status-badge">
             <div class="dot"></div>
-            <span>监听中</span>
+            <span>在线</span>
             <span class="counter" id="messageCounter">0</span>
         </div>
     </div>
@@ -307,7 +306,7 @@
     <div class="reply-area">
         <div class="reply-label">
             <i class="fa-regular fa-reply"></i>
-            回复 (将发送给最新消息的设备)
+            回复 (将发送给所有设备)
         </div>
         <div class="reply-input-wrapper">
             <input type="text" id="replyInput" placeholder="输入回复内容..." autocomplete="off">
@@ -326,9 +325,20 @@
 
     <script>
         (function() {
-            // 和 index.html 使用相同的 storage key
-            const STORAGE_KEY = 'chat_messages';
+            // ===== 在这里粘贴你的 Firebase 配置（和index.html一样） =====
+            const firebaseConfig = {
+                apiKey: "你的apiKey",
+                authDomain: "你的authDomain",
+                projectId: "你的projectId",
+                storageBucket: "你的storageBucket",
+                messagingSenderId: "你的messagingSenderId",
+                appId: "你的appId"
+            };
             
+            // 初始化 Firebase
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+
             // DOM 元素
             const messageList = document.getElementById('messageList');
             const replyInput = document.getElementById('replyInput');
@@ -336,38 +346,53 @@
             const messageCounter = document.getElementById('messageCounter');
             const unreadCount = document.getElementById('unreadCount');
 
-            // 消息存储
             let messages = [];
-            let lastMessageTime = Date.now();
+            let unsubscribe = null;
 
-            // 加载消息
-            function loadMessages() {
-                try {
-                    const saved = localStorage.getItem(STORAGE_KEY);
-                    if (saved) {
-                        const data = JSON.parse(saved);
-                        if (data.messages && Array.isArray(data.messages)) {
-                            messages = data.messages;
-                        }
-                    }
-                } catch (e) {
-                    console.log('加载失败', e);
-                }
-                renderMessages();
-            }
-
-            // 保存消息
-            function saveMessages() {
-                const data = {
-                    messages: messages,
-                    lastReplyTime: Date.now()
-                };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            // 监听消息
+            function listenToMessages() {
+                unsubscribe = db.collection('messages')
+                    .orderBy('time', 'asc')
+                    .onSnapshot((snapshot) => {
+                        messages = [];
+                        let unread = 0;
+                        
+                        snapshot.forEach((doc) => {
+                            const msg = doc.data();
+                            msg.id = doc.id;
+                            messages.push(msg);
+                            
+                            // 统计未读的用户消息
+                            if (msg.role === 'user' && !msg.replied) {
+                                unread++;
+                            }
+                        });
+                        
+                        renderMessages(unread);
+                        
+                        // 新消息提醒
+                        snapshot.docChanges().forEach((change) => {
+                            if (change.type === 'added') {
+                                const msg = change.doc.data();
+                                if (msg.role === 'user') {
+                                    // 震动提醒
+                                    if (window.navigator && window.navigator.vibrate) {
+                                        window.navigator.vibrate([100, 50, 100]);
+                                    }
+                                    // 标题提醒
+                                    document.title = '📨 新消息 - 控制台';
+                                    setTimeout(() => {
+                                        document.title = '控制台 · 管理员';
+                                    }, 3000);
+                                }
+                            }
+                        });
+                    });
             }
 
             // 渲染消息
-            function renderMessages() {
-                if (!messages || messages.length === 0) {
+            function renderMessages(unread = 0) {
+                if (messages.length === 0) {
                     messageList.innerHTML = `
                         <div class="empty-state">
                             <i class="fa-regular fa-radio"></i>
@@ -380,24 +405,17 @@
                 }
 
                 let html = '';
-                let unread = 0;
 
                 // 倒序显示（最新的在上面）
-                [...messages].reverse().forEach((msg, index) => {
+                [...messages].reverse().forEach((msg) => {
                     const isUser = msg.role === 'user';
                     const date = new Date(msg.time || Date.now());
                     const timeStr = `${date.getHours()}:${date.getMinutes().toString().padStart(2,'0')}:${date.getSeconds().toString().padStart(2,'0')}`;
                     
-                    // 生成设备标识（基于时间戳和内容）
-                    const deviceId = msg.deviceId || (msg.time ? msg.time.toString().slice(-6) : '未知');
-                    
-                    // 检查是否是未读的用户消息（没有回复标记）
-                    if (isUser && !msg.replied) {
-                        unread++;
-                    }
+                    const deviceId = msg.deviceId ? msg.deviceId.slice(-6) : '未知';
 
                     html += `
-                        <div class="message-item ${isUser && !msg.replied ? 'unread' : ''}" data-index="${messages.length - 1 - index}">
+                        <div class="message-item ${isUser && !msg.replied ? 'unread' : ''}" data-id="${msg.id}">
                             <div class="message-header">
                                 <span class="device-tag">
                                     <i class="fa-regular fa-mobile"></i>
@@ -407,7 +425,9 @@
                                     <i class="fa-regular fa-clock" style="margin-right: 4px;"></i>
                                     ${timeStr}
                                 </span>
-                                ${isUser ? '<span style="color: #19c37d; font-size: 11px;">📱 访客</span>' : '<span style="color: #ffaa5e; font-size: 11px;">🤖 管理员</span>'}
+                                <span style="color: ${isUser ? '#19c37d' : '#ffaa5e'}; font-size: 11px;">
+                                    ${isUser ? '📱 访客' : '🤖 管理员'}
+                                </span>
                             </div>
                             <div class="message-content">
                                 ${msg.content}
@@ -419,38 +439,28 @@
                 messageList.innerHTML = html;
                 messageCounter.innerText = messages.length;
                 unreadCount.innerText = unread + ' 条未读';
-
-                // 如果有未读消息，自动滚动到最新
-                if (unread > 0) {
-                    const container = document.getElementById('messagesContainer');
-                    container.scrollTop = 0; // 滚动到顶部看最新消息
-                }
             }
 
             // 发送回复
-            function sendReply() {
+            async function sendReply() {
                 const reply = replyInput.value.trim();
                 if (reply === '') return;
 
-                // 找到最新的一条用户消息对应的设备
-                let targetDevice = null;
-                for (let i = messages.length - 1; i >= 0; i--) {
-                    if (messages[i].role === 'user') {
-                        targetDevice = messages[i].deviceId || messages[i].time;
-                        break;
-                    }
-                }
-
-                // 添加回复
-                messages.push({
+                // 保存回复到 Firestore
+                await db.collection('messages').add({
                     role: 'assistant',
                     content: reply,
                     time: Date.now(),
-                    deviceId: targetDevice || ('admin_' + Date.now())
+                    replied: true
                 });
 
-                saveMessages();
-                renderMessages();
+                // 标记所有用户消息为已读
+                const snapshot = await db.collection('messages').where('role', '==', 'user').get();
+                const batch = db.batch();
+                snapshot.forEach((doc) => {
+                    batch.update(doc.ref, { replied: true });
+                });
+                await batch.commit();
 
                 // 清空输入
                 replyInput.value = '';
@@ -458,57 +468,6 @@
                 // 震动反馈
                 if (window.navigator && window.navigator.vibrate) {
                     window.navigator.vibrate(20);
-                }
-            }
-
-            // 标记消息为已读（当点击回复时）
-            function markMessagesAsRead() {
-                let marked = false;
-                messages.forEach(msg => {
-                    if (msg.role === 'user' && !msg.replied) {
-                        msg.replied = true;
-                        marked = true;
-                    }
-                });
-                if (marked) {
-                    saveMessages();
-                    renderMessages();
-                }
-            }
-
-            // 检查新消息（从 index.html 来）
-            function checkForNewMessages() {
-                try {
-                    const saved = localStorage.getItem(STORAGE_KEY);
-                    if (saved) {
-                        const data = JSON.parse(saved);
-                        if (data.messages && data.messages.length > messages.length) {
-                            // 发现新消息
-                            const oldLength = messages.length;
-                            messages = data.messages;
-                            
-                            // 检查是否有新的用户消息
-                            for (let i = oldLength; i < messages.length; i++) {
-                                if (messages[i].role === 'user') {
-                                    // 新消息到达提示
-                                    if (window.navigator && window.navigator.vibrate) {
-                                        window.navigator.vibrate([100, 50, 100]);
-                                    }
-                                    
-                                    // 更新标题提示
-                                    document.title = '📨 新消息 - 控制端';
-                                    setTimeout(() => {
-                                        document.title = '控制端';
-                                    }, 3000);
-                                    break;
-                                }
-                            }
-                            
-                            renderMessages();
-                        }
-                    }
-                } catch (e) {
-                    console.log('检查新消息失败', e);
                 }
             }
 
@@ -523,7 +482,6 @@
             // 发送按钮
             sendBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                markMessagesAsRead(); // 点击发送时标记所有为已读
                 sendReply();
             });
 
@@ -531,29 +489,12 @@
             replyInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    markMessagesAsRead();
                     sendReply();
                 }
             });
 
-            // 点击消息列表（用于标记已读）
-            messageList.addEventListener('click', () => {
-                markMessagesAsRead();
-            });
-
             // 初始化
-            loadMessages();
-            
-            // 每秒检查新消息
-            setInterval(checkForNewMessages, 1000);
-
-            // 页面可见时刷新
-            document.addEventListener('visibilitychange', () => {
-                if (!document.hidden) {
-                    loadMessages();
-                    markMessagesAsRead();
-                }
-            });
+            listenToMessages();
         })();
     </script>
 </body>
