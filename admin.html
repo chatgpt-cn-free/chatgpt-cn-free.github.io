@@ -1,501 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>admin · 控制台</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <!-- 添加 Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        body {
-            background: #1a1b1e;
-            min-height: 100vh;
-            padding: 16px;
-            color: #ececf1;
-        }
-
-        .header {
-            background: #202123;
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid #3d3e4a;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .header-left i {
-            font-size: 28px;
-            color: #19c37d;
-            background: #2c2d33;
-            padding: 12px;
-            border-radius: 16px;
-        }
-
-        .header-left h1 {
-            font-size: 22px;
-            font-weight: 600;
-        }
-
-        .header-left p {
-            color: #9b9b9b;
-            font-size: 13px;
-            margin-top: 4px;
-        }
-
-        .status-badge {
-            background: #2c2d33;
-            padding: 10px 20px;
-            border-radius: 40px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .dot {
-            width: 10px;
-            height: 10px;
-            background: #19c37d;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.4; }
-            100% { opacity: 1; }
-        }
-
-        .messages-container {
-            background: #202123;
-            border-radius: 20px;
-            border: 1px solid #3d3e4a;
-            margin-bottom: 20px;
-            max-height: calc(100vh - 280px);
-            overflow-y: auto;
-        }
-
-        .messages-header {
-            padding: 18px 20px;
-            border-bottom: 1px solid #3d3e4a;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #2c2d33;
-            border-radius: 20px 20px 0 0;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        .messages-header span {
-            color: #19c37d;
-            font-weight: 600;
-        }
-
-        .message-item {
-            padding: 20px;
-            border-bottom: 1px solid #2c2d33;
-            transition: background 0.2s;
-        }
-
-        .message-item.unread {
-            background: #2a2b32;
-            border-left: 4px solid #19c37d;
-        }
-
-        .message-item:hover {
-            background: #2c2d33;
-        }
-
-        .message-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-
-        .device-tag {
-            background: #3d3e4a;
-            padding: 4px 10px;
-            border-radius: 30px;
-            font-size: 11px;
-            color: #9b9b9b;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .device-tag i {
-            color: #19c37d;
-            font-size: 10px;
-        }
-
-        .message-time {
-            color: #6b6e7c;
-            font-size: 12px;
-        }
-
-        .message-content {
-            color: #ececf1;
-            font-size: 15px;
-            line-height: 1.6;
-            padding-left: 0;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .reply-area {
-            background: #202123;
-            border-radius: 20px;
-            padding: 20px;
-            border: 1px solid #3d3e4a;
-            position: sticky;
-            bottom: 16px;
-        }
-
-        .reply-label {
-            color: #9b9b9b;
-            font-size: 13px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .reply-label i {
-            color: #19c37d;
-        }
-
-        .reply-input-wrapper {
-            display: flex;
-            gap: 12px;
-            background: #2c2d33;
-            border-radius: 40px;
-            padding: 6px 6px 6px 24px;
-            border: 1px solid #3d3e4a;
-        }
-
-        .reply-input-wrapper input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: white;
-            font-size: 16px;
-            padding: 14px 0;
-        }
-
-        .reply-input-wrapper input::placeholder {
-            color: #6b6e7c;
-        }
-
-        .send-btn {
-            background: #19c37d;
-            border: none;
-            color: white;
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 20px;
-            transition: all 0.2s;
-        }
-
-        .send-btn:active {
-            transform: scale(0.95);
-        }
-
-        .quick-phrases {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        .phrase {
-            background: #2c2d33;
-            border: 1px solid #3d3e4a;
-            color: #ececf1;
-            padding: 8px 18px;
-            border-radius: 30px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .phrase:hover {
-            background: #19c37d;
-            color: white;
-            border-color: #19c37d;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #6b6e7c;
-        }
-
-        .empty-state i {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-
-        .counter {
-            background: #19c37d;
-            color: #202123;
-            padding: 2px 10px;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 13px;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Admin</title>
 </head>
+
 <body>
-    <div class="header">
-        <div class="header-left">
-            <i class="fa-regular fa-gauge-high"></i>
-            <div>
-                <h1>控制台 · 管理员</h1>
-                <p>所有设备的消息实时同步</p>
-            </div>
-        </div>
-        <div class="status-badge">
-            <div class="dot"></div>
-            <span>在线</span>
-            <span class="counter" id="messageCounter">0</span>
-        </div>
-    </div>
 
-    <div class="messages-container" id="messagesContainer">
-        <div class="messages-header">
-            <span><i class="fa-regular fa-message" style="margin-right: 8px;"></i>消息流</span>
-            <span id="unreadCount">0 条未读</span>
-        </div>
-        <div id="messageList">
-            <div class="empty-state">
-                <i class="fa-regular fa-radio"></i>
-                <p>等待接收消息...</p>
-            </div>
-        </div>
-    </div>
+<h2>Incoming Messages</h2>
+<div id="msgs"></div>
 
-    <div class="reply-area">
-        <div class="reply-label">
-            <i class="fa-regular fa-reply"></i>
-            回复 (将发送给所有设备)
-        </div>
-        <div class="reply-input-wrapper">
-            <input type="text" id="replyInput" placeholder="输入回复内容..." autocomplete="off">
-            <button class="send-btn" id="sendReplyBtn">
-                <i class="fa-regular fa-arrow-up"></i>
-            </button>
-        </div>
-        <div class="quick-phrases">
-            <span class="phrase" data-text="你好，有什么可以帮你？">👋 打招呼</span>
-            <span class="phrase" data-text="稍等一下，我看看">⏳ 稍等</span>
-            <span class="phrase" data-text="这个我不太确定">🤔 不确定</span>
-            <span class="phrase" data-text="是的，你说得对">✅ 赞同</span>
-            <span class="phrase" data-text="不好意思，刚看到">🕐 刚看到</span>
-        </div>
-    </div>
+<input id="reply">
+<button onclick="send()">Reply</button>
 
-    <script>
-        (function() {
-            // ===== 在这里粘贴你的 Firebase 配置（和index.html一样） =====
-            const firebaseConfig = {
-                apiKey: "AIzaSyCVVmXYADavtT2VUHlXYE4f2eA6SsC1Llg",
-                authDomain: "chatgpt-cn-free.firebaseapp.com",
-                projectId: "chatgpt-cn-free",
-                storageBucket: "chatgpt-cn-free.firebasestorage.app",
-                messagingSenderId: "1064840278974",
-                appId: "1:1064840278974:web:f992349f55fb6db030bfef"
-            };
-            
-            // 初始化 Firebase
-            firebase.initializeApp(firebaseConfig);
-            const db = firebase.firestore();
+<script type="module">
 
-            // DOM 元素
-            const messageList = document.getElementById('messageList');
-            const replyInput = document.getElementById('replyInput');
-            const sendBtn = document.getElementById('sendReplyBtn');
-            const messageCounter = document.getElementById('messageCounter');
-            const unreadCount = document.getElementById('unreadCount');
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-            let messages = [];
-            let unsubscribe = null;
+const firebaseConfig={
+apiKey:"AIzaSy...",
+authDomain:"chatgpt-cn-free.firebaseapp.com",
+projectId:"chatgpt-cn-free"
+};
 
-            // 监听消息
-            function listenToMessages() {
-                unsubscribe = db.collection('messages')
-                    .orderBy('time', 'asc')
-                    .onSnapshot((snapshot) => {
-                        messages = [];
-                        let unread = 0;
-                        
-                        snapshot.forEach((doc) => {
-                            const msg = doc.data();
-                            msg.id = doc.id;
-                            messages.push(msg);
-                            
-                            // 统计未读的用户消息
-                            if (msg.role === 'user' && !msg.replied) {
-                                unread++;
-                            }
-                        });
-                        
-                        renderMessages(unread);
-                        
-                        // 新消息提醒
-                        snapshot.docChanges().forEach((change) => {
-                            if (change.type === 'added') {
-                                const msg = change.doc.data();
-                                if (msg.role === 'user') {
-                                    // 震动提醒
-                                    if (window.navigator && window.navigator.vibrate) {
-                                        window.navigator.vibrate([100, 50, 100]);
-                                    }
-                                    // 标题提醒
-                                    document.title = '📨 新消息 - 控制台';
-                                    setTimeout(() => {
-                                        document.title = '控制台 · 管理员';
-                                    }, 3000);
-                                }
-                            }
-                        });
-                    });
-            }
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
 
-            // 渲染消息
-            function renderMessages(unread = 0) {
-                if (messages.length === 0) {
-                    messageList.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fa-regular fa-radio"></i>
-                            <p>等待接收消息...</p>
-                        </div>
-                    `;
-                    messageCounter.innerText = '0';
-                    unreadCount.innerText = '0 条未读';
-                    return;
-                }
+const msgs=document.getElementById("msgs");
 
-                let html = '';
+onSnapshot(collection(db,"messages"),snap=>{
+msgs.innerHTML="";
+snap.forEach(doc=>{
+let d=document.createElement("div");
+d.innerText=doc.data().text;
+msgs.appendChild(d);
+});
+});
 
-                // 倒序显示（最新的在上面）
-                [...messages].reverse().forEach((msg) => {
-                    const isUser = msg.role === 'user';
-                    const date = new Date(msg.time || Date.now());
-                    const timeStr = `${date.getHours()}:${date.getMinutes().toString().padStart(2,'0')}:${date.getSeconds().toString().padStart(2,'0')}`;
-                    
-                    const deviceId = msg.deviceId ? msg.deviceId.slice(-6) : '未知';
+window.send=async function(){
+let t=document.getElementById("reply").value;
 
-                    html += `
-                        <div class="message-item ${isUser && !msg.replied ? 'unread' : ''}" data-id="${msg.id}">
-                            <div class="message-header">
-                                <span class="device-tag">
-                                    <i class="fa-regular fa-mobile"></i>
-                                    设备 · ${deviceId}
-                                </span>
-                                <span class="message-time">
-                                    <i class="fa-regular fa-clock" style="margin-right: 4px;"></i>
-                                    ${timeStr}
-                                </span>
-                                <span style="color: ${isUser ? '#19c37d' : '#ffaa5e'}; font-size: 11px;">
-                                    ${isUser ? '📱 访客' : '🤖 管理员'}
-                                </span>
-                            </div>
-                            <div class="message-content">
-                                ${msg.content}
-                            </div>
-                        </div>
-                    `;
-                });
+await addDoc(collection(db,"replies"),{
+text:t,
+time:Date.now()
+});
+}
 
-                messageList.innerHTML = html;
-                messageCounter.innerText = messages.length;
-                unreadCount.innerText = unread + ' 条未读';
-            }
+</script>
 
-            // 发送回复
-            async function sendReply() {
-                const reply = replyInput.value.trim();
-                if (reply === '') return;
-
-                // 保存回复到 Firestore
-                await db.collection('messages').add({
-                    role: 'assistant',
-                    content: reply,
-                    time: Date.now(),
-                    replied: true
-                });
-
-                // 标记所有用户消息为已读
-                const snapshot = await db.collection('messages').where('role', '==', 'user').get();
-                const batch = db.batch();
-                snapshot.forEach((doc) => {
-                    batch.update(doc.ref, { replied: true });
-                });
-                await batch.commit();
-
-                // 清空输入
-                replyInput.value = '';
-
-                // 震动反馈
-                if (window.navigator && window.navigator.vibrate) {
-                    window.navigator.vibrate(20);
-                }
-            }
-
-            // 快捷短语
-            document.querySelectorAll('.phrase').forEach(phrase => {
-                phrase.addEventListener('click', () => {
-                    replyInput.value = phrase.dataset.text;
-                    replyInput.focus();
-                });
-            });
-
-            // 发送按钮
-            sendBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                sendReply();
-            });
-
-            // 回车发送
-            replyInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    sendReply();
-                }
-            });
-
-            // 初始化
-            listenToMessages();
-        })();
-    </script>
 </body>
 </html>
