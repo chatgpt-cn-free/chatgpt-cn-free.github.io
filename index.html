@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ChatGPT · 对话</title>
-    <!-- 字体与图标 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- 添加 Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
     <style>
+        /* 样式保持不变，和你之前的index.html一样 */
         * {
             margin: 0;
             padding: 0;
@@ -22,7 +27,6 @@
             overflow: hidden;
         }
 
-        /* 主容器 - 移动端优化 */
         .app {
             display: flex;
             flex-direction: column;
@@ -31,7 +35,6 @@
             position: relative;
         }
 
-        /* ========= 顶部导航 ========= */
         .nav-header {
             padding: 12px 16px;
             background-color: #202123;
@@ -75,7 +78,6 @@
             font-size: 18px;
         }
 
-        /* ========= 聊天消息区域 ========= */
         .message-container {
             flex: 1;
             overflow-y: auto;
@@ -157,7 +159,6 @@
             line-height: 1.5;
         }
 
-        /* ========= 底部输入区 ========= */
         .input-area {
             padding: 16px 16px 24px 16px;
             background-color: #343541;
@@ -217,7 +218,6 @@
             margin-top: 10px;
         }
 
-        /* ========= 思考动画（ChatGPT风格） ========= */
         .thinking-row {
             display: flex;
             padding: 16px 16px;
@@ -280,26 +280,10 @@
             font-size: 14px;
             opacity: 0.9;
         }
-
-        /* 临时消息存储提示 */
-        .storage-note {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.6);
-            color: #ff9800;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            z-index: 1000;
-            backdrop-filter: blur(4px);
-            border: 1px solid #ff9800;
-        }
     </style>
 </head>
 <body>
     <div class="app">
-        <!-- 顶部导航 -->
         <div class="nav-header">
             <div class="nav-left">
                 <div class="menu-btn">
@@ -313,14 +297,10 @@
             </div>
         </div>
 
-        <!-- 聊天区域 -->
         <div id="messageContainer" class="message-container">
-            <div class="message-group" id="messageGroup">
-                <!-- 欢迎消息会通过JS动态加载 -->
-            </div>
+            <div class="message-group" id="messageGroup"></div>
         </div>
 
-        <!-- 输入区域 -->
         <div class="input-area">
             <div class="input-wrapper">
                 <textarea id="userMessageInput" placeholder="发送消息给 ChatGPT..." rows="1"></textarea>
@@ -329,125 +309,117 @@
                 </button>
             </div>
             <div class="disclaimer">
-                中国大陆区免费版 · AI开源代码制作，延迟较高，请耐心等待
+                中国大陆免费版 · AI代码开源，延迟较高，请耐心等待
             </div>
         </div>
     </div>
 
-    <!-- 数据存储提示 -->
-    <div class="storage-note" id="storageNote">
-        <i class="fa-regular fa-database"></i> 等待新消息...
-    </div>
-
     <script>
         (function() {
-            // 使用 localStorage 作为跨页面通信
-            const STORAGE_KEY = 'chat_messages';
-            const CHECK_INTERVAL = 2000; // 2秒检查一次新消息
+            // ===== 在这里粘贴你的 Firebase 配置 =====
+            const firebaseConfig = {
+                apiKey: "AIzaSyCVVmXYADavtT2VUHlXYE4f2eA6SsC1Llg",
+                authDomain: "chatgpt-cn-free.firebaseapp.com",
+                projectId: "chatgpt-cn-free",
+                storageBucket: "chatgpt-cn-free.firebasestorage.app",
+                messagingSenderId: "1064840278974",
+                appId: "1:1064840278974:web:f992349f55fb6db030bfef"
+            };
+            
+            // 初始化 Firebase
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            
+            // 生成设备ID（用于区分不同访客）
+            let deviceId = localStorage.getItem('device_id');
+            if (!deviceId) {
+                deviceId = 'device_' + Math.random().toString(36).substring(2, 10);
+                localStorage.setItem('device_id', deviceId);
+            }
 
             // DOM 元素
             const messageGroup = document.getElementById('messageGroup');
             const userInput = document.getElementById('userMessageInput');
             const sendBtn = document.getElementById('sendUserMsgBtn');
             const messageContainer = document.getElementById('messageContainer');
-            const storageNote = document.getElementById('storageNote');
 
-            // 当前消息列表
-            let messages = [];
-            let thinkingTimeout = null;
             let isThinking = false;
+            let unsubscribe = null;
 
-            // 加载已有消息
-            function loadMessages() {
-                try {
-                    const saved = localStorage.getItem(STORAGE_KEY);
-                    if (saved) {
-                        const data = JSON.parse(saved);
-                        messages = data.messages || [];
+            // 监听新消息
+            function listenToMessages() {
+                unsubscribe = db.collection('messages')
+                    .orderBy('time', 'asc')
+                    .onSnapshot((snapshot) => {
+                        let hasNewMessage = false;
                         
-                        // 更新提示
-                        if (data.lastReplyTime) {
-                            const timeAgo = Math.floor((Date.now() - data.lastReplyTime) / 1000);
-                            if (timeAgo < 60) {
-                                storageNote.innerHTML = `<i class="fa-regular fa-clock"></i> AI刚刚回复过`;
-                            } else {
-                                storageNote.innerHTML = `<i class="fa-regular fa-database"></i> 等待新消息...`;
+                        snapshot.docChanges().forEach((change) => {
+                            if (change.type === 'added') {
+                                const msg = change.doc.data();
+                                
+                                // 如果是自己发的消息，不重复显示
+                                if (msg.deviceId === deviceId && msg.role === 'user') {
+                                    return;
+                                }
+                                
+                                // 移除思考动画
+                                if (msg.role === 'assistant' && isThinking) {
+                                    isThinking = false;
+                                    removeThinkingAnimation();
+                                }
+                                
+                                // 显示消息
+                                appendMessageToDOM(msg.role, msg.content, msg.time);
+                                hasNewMessage = true;
                             }
+                        });
+                        
+                        if (hasNewMessage) {
+                            setTimeout(() => {
+                                messageContainer.scrollTop = messageContainer.scrollHeight;
+                            }, 100);
                         }
-                    }
-                } catch (e) {
-                    console.log('加载消息失败', e);
-                    messages = [];
-                }
-                renderMessages();
+                    });
             }
 
-            // 保存消息
-            function saveMessage(role, content) {
-                const message = {
-                    role: role,
+            // 发送消息
+            async function sendUserMessage() {
+                const content = userInput.value.trim();
+                if (content === '') return;
+
+                // 显示用户消息
+                appendMessageToDOM('user', content, Date.now());
+                
+                // 保存到 Firestore
+                await db.collection('messages').add({
+                    role: 'user',
                     content: content,
-                    time: Date.now()
-                };
-                messages.push(message);
+                    time: Date.now(),
+                    deviceId: deviceId
+                });
+
+                // 清空输入
+                userInput.value = '';
+                userInput.style.height = 'auto';
+
+                // 显示思考动画
+                isThinking = true;
+                addThinkingAnimation();
                 
-                // 保存到 localStorage
-                const data = {
-                    messages: messages,
-                    lastReplyTime: role === 'assistant' ? Date.now() : null
-                };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                
-                renderMessages();
-                
-                // 滚动到底部
                 setTimeout(() => {
                     messageContainer.scrollTop = messageContainer.scrollHeight;
-                }, 100);
+                }, 50);
             }
 
-            // 渲染所有消息
-            function renderMessages() {
-                messageGroup.innerHTML = '';
-                
-                if (messages.length === 0) {
-                    // 显示默认欢迎消息
-                    addWelcomeMessage();
-                } else {
-                    messages.forEach(msg => {
-                        appendMessageToDOM(msg.role, msg.content, msg.time);
-                    });
-                }
-                
-                // 如果正在思考，添加思考动画
-                if (isThinking) {
-                    addThinkingAnimation();
-                }
-            }
-
-            // 添加欢迎消息
-            function addWelcomeMessage() {
-                const welcomeMsg = {
-                    role: 'assistant',
-                    content: '你好！我是ChatGPT。有什么可以帮你的吗？',
-                    time: Date.now()
-                };
-                messages.push(welcomeMsg);
-                appendMessageToDOM('assistant', welcomeMsg.content, welcomeMsg.time);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({ messages: messages }));
-            }
-
-            // 将单条消息添加到DOM
+            // 添加消息到DOM
             function appendMessageToDOM(role, content, timestamp) {
                 const rowDiv = document.createElement('div');
                 rowDiv.className = `message-row ${role === 'user' ? 'user-row' : 'assistant-row'}`;
 
-                // 头像
                 const avatarDiv = document.createElement('div');
                 avatarDiv.className = `message-avatar ${role === 'user' ? 'user-avatar-icon' : 'assistant-avatar-icon'}`;
                 avatarDiv.innerHTML = role === 'user' ? '<i class="fa-regular fa-user"></i>' : '<i class="fa-regular fa-sparkles"></i>';
 
-                // 内容区域
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'message-content';
 
@@ -483,12 +455,10 @@
                 thinkingRow.className = 'message-row assistant-row thinking-row';
                 thinkingRow.id = 'thinkingIndicator';
 
-                // 头像
                 const avatarDiv = document.createElement('div');
                 avatarDiv.className = 'message-avatar assistant-avatar-icon';
                 avatarDiv.innerHTML = '<i class="fa-regular fa-sparkles"></i>';
 
-                // 内容区域
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'message-content';
 
@@ -520,99 +490,7 @@
                 }
             }
 
-            // 发送用户消息
-            function sendUserMessage() {
-                const msg = userInput.value.trim();
-                if (msg === '') return;
-
-                // 保存用户消息
-                saveMessage('user', msg);
-                userInput.value = '';
-                userInput.style.height = 'auto';
-
-                // 清除之前的思考定时器
-                if (thinkingTimeout) {
-                    clearTimeout(thinkingTimeout);
-                }
-
-                // 显示思考动画
-                isThinking = true;
-                addThinkingAnimation();
-                
-                // 滚动到底部显示动画
-                setTimeout(() => {
-                    messageContainer.scrollTop = messageContainer.scrollHeight;
-                }, 50);
-
-                // 更新提示
-                storageNote.innerHTML = '<i class="fa-regular fa-hourglass-half"></i> AI 思考中...';
-                storageNote.style.borderColor = '#19c37d';
-                storageNote.style.color = '#19c37d';
-
-                // 设置一个较长的思考时间（10秒后如果还没回复，提示可能慢了）
-                thinkingTimeout = setTimeout(() => {
-                    if (isThinking) {
-                        storageNote.innerHTML = '<i class="fa-regular fa-clock"></i> AI 思考时间较长或延迟较高，请稍等...';
-                        storageNote.style.borderColor = '#ff9800';
-                        storageNote.style.color = '#ff9800';
-                    }
-                }, 8000);
-            }
-
-            // 检查新消息（来自admin的回复）
-            function checkForNewMessages() {
-                try {
-                    const saved = localStorage.getItem(STORAGE_KEY);
-                    if (saved) {
-                        const data = JSON.parse(saved);
-                        if (data.messages && data.messages.length > messages.length) {
-                            // 发现有新消息（管理员回复了）
-                            const oldCount = messages.length;
-                            messages = data.messages;
-                            
-                            // 移除思考动画
-                            if (isThinking) {
-                                isThinking = false;
-                                removeThinkingAnimation();
-                                if (thinkingTimeout) {
-                                    clearTimeout(thinkingTimeout);
-                                }
-                            }
-                            
-                            renderMessages();
-                            
-                            // 如果有新助手消息，更新提示
-                            if (data.lastReplyTime) {
-                                storageNote.innerHTML = '<i class="fa-regular fa-check-circle"></i> AI已回复！';
-                                storageNote.style.borderColor = '#19c37d';
-                                storageNote.style.color = '#19c37d';
-                                
-                                // 3秒后恢复
-                                setTimeout(() => {
-                                    storageNote.innerHTML = '<i class="fa-regular fa-database"></i> 等待新消息...';
-                                    storageNote.style.borderColor = '#ff9800';
-                                    storageNote.style.color = '#ff9800';
-                                }, 3000);
-                            }
-                            
-                            // 滚动到底部
-                            setTimeout(() => {
-                                messageContainer.scrollTop = messageContainer.scrollHeight;
-                            }, 100);
-                        }
-                    }
-                } catch (e) {
-                    console.log('检查新消息失败', e);
-                }
-            }
-
-            // 自动调整文本框高度
-            userInput.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = (this.scrollHeight) + 'px';
-            });
-
-            // 发送消息
+            // 事件监听
             sendBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 sendUserMessage();
@@ -625,21 +503,14 @@
                 }
             });
 
-            // 初始化
-            loadMessages();
-            
-            // 定期检查新消息
-            setInterval(checkForNewMessages, CHECK_INTERVAL);
-
-            // 点击菜单按钮无效果（装饰用）
-            document.querySelector('.menu-btn').addEventListener('click', (e) => {
-                e.preventDefault();
+            userInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
             });
 
-            // 滚动到底部
-            setTimeout(() => {
-                messageContainer.scrollTop = messageContainer.scrollHeight;
-            }, 500);
+            // 初始化
+            listenToMessages();
+            userInput.focus();
         })();
     </script>
 </body>
