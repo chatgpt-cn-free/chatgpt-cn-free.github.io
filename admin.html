@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>终端 v2.3.1</title>
+    <title>admin · 控制端</title>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -11,364 +11,68 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Courier New', 'SF Mono', 'Fira Code', monospace;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            background: #0a0c0b;
+            background: #1a1b1e;
             min-height: 100vh;
-            color: #00ff9d;
-            padding: 12px;
+            padding: 16px;
+            color: #ececf1;
         }
 
-        /* 终端风格 */
-        .terminal {
-            background: #030504;
-            border: 2px solid #1a2f25;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 0 30px rgba(0,255,157,0.1);
-        }
-
-        .terminal-header {
-            background: #0f1a14;
-            padding: 14px 18px;
-            border-bottom: 1px solid #1f3a2c;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .terminal-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .terminal-title i {
-            color: #00ff9d;
-            font-size: 18px;
-        }
-
-        .terminal-title span {
-            color: #b3ffda;
-            font-weight: 600;
-            letter-spacing: 1px;
-        }
-
-        .terminal-controls {
-            display: flex;
-            gap: 15px;
-            color: #1f5e41;
-        }
-
-        .terminal-controls i {
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-
-        .terminal-controls i:hover {
-            color: #00ff9d;
-        }
-
-        /* 会话容器 */
-        .sessions-container {
-            display: flex;
-            gap: 2px;
-            background: #0f1a14;
-            min-height: calc(100vh - 160px);
-        }
-
-        /* 左侧会话列表 */
-        .session-list {
-            width: 200px;
-            background: #060b08;
-            border-right: 2px solid #1f3a2c;
-            overflow-y: auto;
-        }
-
-        .session-header {
-            padding: 18px 12px 10px 12px;
-            color: #1f5e41;
-            font-size: 11px;
-            letter-spacing: 2px;
-            border-bottom: 1px solid #1f3a2c;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .session-item {
-            padding: 16px 12px;
-            border-bottom: 1px solid #142115;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-        }
-
-        .session-item:hover {
-            background: #0f1a14;
-        }
-
-        .session-item.active {
-            background: #1a2f25;
-            border-left: 4px solid #00ff9d;
-        }
-
-        .session-id {
-            color: #b3ffda;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .session-id i {
-            color: #1f5e41;
-            font-size: 10px;
-        }
-
-        .session-preview {
-            color: #6c8f7a;
-            font-size: 11px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .session-badge {
-            position: absolute;
-            top: 16px;
-            right: 12px;
-            background: #00ff9d;
-            color: #030504;
-            font-size: 10px;
-            font-weight: bold;
-            padding: 2px 6px;
+        /* 头部 */
+        .header {
+            background: #202123;
             border-radius: 20px;
-            min-width: 20px;
-            text-align: center;
-        }
-
-        /* 右侧聊天区域 */
-        .chat-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: #030504;
-        }
-
-        .chat-header {
-            padding: 16px 20px;
-            background: #0f1a14;
-            border-bottom: 1px solid #1f3a2c;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #3d3e4a;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
-        .current-session {
+        .header-left {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 15px;
         }
 
-        .current-session i {
-            color: #1f5e41;
+        .header-left i {
+            font-size: 28px;
+            color: #19c37d;
+            background: #2c2d33;
+            padding: 12px;
+            border-radius: 16px;
         }
 
-        .session-info {
-            color: #b3ffda;
+        .header-left h1 {
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .header-left p {
+            color: #9b9b9b;
             font-size: 13px;
-        }
-
-        .session-info small {
-            color: #1f5e41;
-            font-size: 10px;
-            display: block;
             margin-top: 4px;
         }
 
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: #1a2f25;
-            padding: 6px 14px;
-            border-radius: 30px;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #00ff9d;
-            animation: pulse 2s infinite;
-        }
-
-        .status-text {
-            color: #b3ffda;
-            font-size: 11px;
-        }
-
-        /* 消息列表 */
-        .messages-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background: #030504;
-        }
-
-        .message-item {
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .message-meta {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 6px;
-        }
-
-        .message-sender {
-            color: #1f5e41;
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-
-        .message-time {
-            color: #1a472a;
-            font-size: 10px;
-        }
-
-        .message-bubble {
-            background: #0f1a14;
-            border-left: 3px solid #00ff9d;
-            padding: 12px 16px;
-            border-radius: 0 8px 8px 8px;
-            max-width: 85%;
-            align-self: flex-start;
-            word-break: break-word;
-            line-height: 1.6;
-            font-size: 14px;
-            color: #d4ffea;
-        }
-
-        .message-bubble.user {
-            border-left-color: #ffaa5e;
-            background: #1a251f;
-            align-self: flex-end;
-            border-radius: 8px 0 8px 8px;
-            margin-left: auto;
-        }
-
-        .message-bubble.system {
-            border-left-color: #ff5e5e;
-            background: #2a1f1f;
-            font-style: italic;
-            color: #ffb3b3;
-        }
-
-        /* 输入区域 */
-        .input-area {
-            padding: 20px;
-            background: #0f1a14;
-            border-top: 1px solid #1f3a2c;
-        }
-
-        .input-line {
+        .status-badge {
+            background: #2c2d33;
+            padding: 10px 20px;
+            border-radius: 40px;
             display: flex;
             align-items: center;
             gap: 12px;
-            background: #030504;
-            border: 1px solid #1f3a2c;
-            border-radius: 30px;
-            padding: 6px 6px 6px 20px;
         }
 
-        .input-prompt {
-            color: #1f5e41;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .input-line input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: #00ff9d;
-            font-size: 15px;
-            padding: 14px 0;
-            font-family: 'Courier New', monospace;
-        }
-
-        .input-line input::placeholder {
-            color: #1a472a;
-        }
-
-        .send-cmd {
-            background: #1a2f25;
-            border: none;
-            color: #00ff9d;
-            width: 44px;
-            height: 44px;
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: #19c37d;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 18px;
-        }
-
-        .send-cmd:hover {
-            background: #00ff9d;
-            color: #030504;
-        }
-
-        /* 快捷指令 */
-        .quick-commands {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-            padding: 0 8px;
-        }
-
-        .cmd-tag {
-            background: #1a2f25;
-            color: #6c8f7a;
-            padding: 8px 16px;
-            border-radius: 30px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid #1f3a2c;
-        }
-
-        .cmd-tag:hover {
-            background: #00ff9d;
-            color: #030504;
-            border-color: #00ff9d;
-        }
-
-        /* 系统消息 */
-        .system-log {
-            padding: 10px 20px;
-            background: #0f1a14;
-            color: #1f5e41;
-            font-size: 11px;
-            border-top: 1px solid #1f3a2c;
-            font-family: monospace;
-        }
-
-        .system-log i {
-            margin-right: 8px;
+            animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
@@ -377,383 +81,441 @@
             100% { opacity: 1; }
         }
 
-        /* 空状态 */
-        .empty-session {
-            text-align: center;
-            padding: 50px 20px;
-            color: #1a472a;
+        /* 消息列表 */
+        .messages-container {
+            background: #202123;
+            border-radius: 20px;
+            border: 1px solid #3d3e4a;
+            margin-bottom: 20px;
+            max-height: calc(100vh - 280px);
+            overflow-y: auto;
         }
 
-        .empty-session i {
+        .messages-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid #3d3e4a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #2c2d33;
+            border-radius: 20px 20px 0 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .messages-header span {
+            color: #19c37d;
+            font-weight: 600;
+        }
+
+        .message-item {
+            padding: 20px;
+            border-bottom: 1px solid #2c2d33;
+            transition: background 0.2s;
+        }
+
+        .message-item.unread {
+            background: #2a2b32;
+            border-left: 4px solid #19c37d;
+        }
+
+        .message-item:hover {
+            background: #2c2d33;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+
+        .device-tag {
+            background: #3d3e4a;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 11px;
+            color: #9b9b9b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .device-tag i {
+            color: #19c37d;
+            font-size: 10px;
+        }
+
+        .message-time {
+            color: #6b6e7c;
+            font-size: 12px;
+        }
+
+        .message-content {
+            color: #ececf1;
+            font-size: 15px;
+            line-height: 1.6;
+            padding-left: 35px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* 回复区域 */
+        .reply-area {
+            background: #202123;
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid #3d3e4a;
+            position: sticky;
+            bottom: 16px;
+        }
+
+        .reply-label {
+            color: #9b9b9b;
+            font-size: 13px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reply-label i {
+            color: #19c37d;
+        }
+
+        .reply-input-wrapper {
+            display: flex;
+            gap: 12px;
+            background: #2c2d33;
+            border-radius: 40px;
+            padding: 6px 6px 6px 24px;
+            border: 1px solid #3d3e4a;
+        }
+
+        .reply-input-wrapper input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: white;
+            font-size: 16px;
+            padding: 14px 0;
+        }
+
+        .reply-input-wrapper input::placeholder {
+            color: #6b6e7c;
+        }
+
+        .send-btn {
+            background: #19c37d;
+            border: none;
+            color: white;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s;
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 快捷短语 */
+        .quick-phrases {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .phrase {
+            background: #2c2d33;
+            border: 1px solid #3d3e4a;
+            color: #ececf1;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .phrase:hover {
+            background: #19c37d;
+            color: white;
+            border-color: #19c37d;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b6e7c;
+        }
+
+        .empty-state i {
             font-size: 48px;
             margin-bottom: 16px;
             opacity: 0.5;
         }
 
-        /* 滚动条 */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #030504;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #1f3a2c;
-            border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #00ff9d;
+        /* 计数器 */
+        .counter {
+            background: #19c37d;
+            color: #202123;
+            padding: 2px 10px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 13px;
         }
     </style>
 </head>
 <body>
-    <div class="terminal">
-        <!-- 终端头部 -->
-        <div class="terminal-header">
-            <div class="terminal-title">
-                <i class="fa-regular fa-terminal"></i>
-                <span>ROOT@CHATCTL:~# 会话管理终端</span>
-            </div>
-            <div class="terminal-controls">
-                <i class="fa-regular fa-rotate" id="refreshBtn"></i>
-                <i class="fa-regular fa-circle-minus"></i>
-                <i class="fa-regular fa-circle-xmark"></i>
+    <div class="header">
+        <div class="header-left">
+            <i class="fa-regular fa-gauge-high"></i>
+            <div>
+                <h1>控制端</h1>
+                <p>所有设备的消息都会显示在这里</p>
             </div>
         </div>
+        <div class="status-badge">
+            <div class="dot"></div>
+            <span>监听中</span>
+            <span class="counter" id="messageCounter">0</span>
+        </div>
+    </div>
 
-        <!-- 主区域 -->
-        <div class="sessions-container">
-            <!-- 左侧会话列表 -->
-            <div class="session-list" id="sessionList">
-                <div class="session-header">
-                    <span>活跃会话</span>
-                    <span id="sessionCount">0</span>
-                </div>
-                <!-- 会话会动态生成 -->
-            </div>
-
-            <!-- 右侧聊天面板 -->
-            <div class="chat-panel">
-                <div class="chat-header">
-                    <div class="current-session">
-                        <i class="fa-regular fa-hashtag"></i>
-                        <div class="session-info">
-                            <span id="currentSessionId">未选择会话</span>
-                            <small id="currentSessionTime"></small>
-                        </div>
-                    </div>
-                    <div class="connection-status">
-                        <div class="status-dot"></div>
-                        <div class="status-text">LISTENING</div>
-                    </div>
-                </div>
-
-                <!-- 消息列表 -->
-                <div class="messages-area" id="messagesArea">
-                    <div class="empty-session">
-                        <i class="fa-regular fa-radio"></i>
-                        <p>选择一个会话开始通信</p>
-                    </div>
-                </div>
-
-                <!-- 输入区域 -->
-                <div class="input-area">
-                    <div class="input-line">
-                        <span class="input-prompt">$></span>
-                        <input type="text" id="replyInput" placeholder="输入回复..." autocomplete="off">
-                        <button class="send-cmd" id="sendReplyBtn">
-                            <i class="fa-regular fa-arrow-up"></i>
-                        </button>
-                    </div>
-                    <div class="quick-commands">
-                        <span class="cmd-tag" data-cmd="收到，正在处理">[处理中]</span>
-                        <span class="cmd-tag" data-cmd="需要点时间查询">[查询中]</span>
-                        <span class="cmd-tag" data-cmd="抱歉，这个我不太确定">[不确定]</span>
-                        <span class="cmd-tag" data-cmd="是的，你说得对">[确认]</span>
-                        <span class="cmd-tag" data-cmd="你好，有什么需要帮助？">[新会话]</span>
-                    </div>
-                </div>
+    <div class="messages-container" id="messagesContainer">
+        <div class="messages-header">
+            <span><i class="fa-regular fa-message" style="margin-right: 8px;"></i>消息流</span>
+            <span id="unreadCount">0 条未读</span>
+        </div>
+        <div id="messageList">
+            <div class="empty-state">
+                <i class="fa-regular fa-radio"></i>
+                <p>等待接收消息...</p>
             </div>
         </div>
+    </div>
 
-        <!-- 系统日志条 -->
-        <div class="system-log" id="systemLog">
-            <i class="fa-regular fa-circle-info"></i>
-            <span>系统就绪 · 等待连接</span>
+    <div class="reply-area">
+        <div class="reply-label">
+            <i class="fa-regular fa-reply"></i>
+            回复 (将发送给最新消息的设备)
+        </div>
+        <div class="reply-input-wrapper">
+            <input type="text" id="replyInput" placeholder="输入回复内容..." autocomplete="off">
+            <button class="send-btn" id="sendReplyBtn">
+                <i class="fa-regular fa-arrow-up"></i>
+            </button>
+        </div>
+        <div class="quick-phrases">
+            <span class="phrase" data-text="你好，有什么可以帮你？">👋 打招呼</span>
+            <span class="phrase" data-text="稍等一下，我看看">⏳ 稍等</span>
+            <span class="phrase" data-text="这个我不太确定">🤔 不确定</span>
+            <span class="phrase" data-text="是的，你说得对">✅ 赞同</span>
+            <span class="phrase" data-text="不好意思，刚看到">🕐 刚看到</span>
         </div>
     </div>
 
     <script>
         (function() {
-            const STORAGE_KEY = 'chat_sessions';
+            // 和 index.html 使用相同的 storage key
+            const STORAGE_KEY = 'chat_messages';
             
             // DOM 元素
-            const sessionList = document.getElementById('sessionList');
-            const messagesArea = document.getElementById('messagesArea');
+            const messageList = document.getElementById('messageList');
             const replyInput = document.getElementById('replyInput');
             const sendBtn = document.getElementById('sendReplyBtn');
-            const currentSessionId = document.getElementById('currentSessionId');
-            const currentSessionTime = document.getElementById('currentSessionTime');
-            const sessionCount = document.getElementById('sessionCount');
-            const systemLog = document.getElementById('systemLog');
+            const messageCounter = document.getElementById('messageCounter');
+            const unreadCount = document.getElementById('unreadCount');
 
-            // 数据结构
-            let sessions = {};        // 所有会话 { sessionId: { messages: [], lastActive: timestamp } }
-            let currentSession = null; // 当前选中的sessionId
+            // 消息存储
+            let messages = [];
+            let lastMessageTime = Date.now();
 
-            // 生成唯一会话ID
-            function generateSessionId() {
-                return '#' + Math.random().toString(36).substring(2, 8).toUpperCase();
-            }
-
-            // 从localStorage加载所有会话
-            function loadSessions() {
+            // 加载消息
+            function loadMessages() {
                 try {
                     const saved = localStorage.getItem(STORAGE_KEY);
                     if (saved) {
-                        sessions = JSON.parse(saved);
-                    } else {
-                        // 初始化一个测试会话
-                        const testId = generateSessionId();
-                        sessions = {
-                            [testId]: {
-                                messages: [{
-                                    role: 'assistant',
-                                    content: '你好，我是ChatGPT',
-                                    time: Date.now()
-                                }],
-                                lastActive: Date.now()
-                            }
-                        };
-                        saveSessions();
+                        const data = JSON.parse(saved);
+                        if (data.messages && Array.isArray(data.messages)) {
+                            messages = data.messages;
+                        }
                     }
                 } catch (e) {
-                    console.error('加载失败', e);
-                    sessions = {};
+                    console.log('加载失败', e);
                 }
-                
-                // 清理过期会话（24小时以上）
-                const now = Date.now();
-                Object.keys(sessions).forEach(id => {
-                    if (now - sessions[id].lastActive > 86400000) {
-                        delete sessions[id];
-                    }
-                });
-                
-                renderSessionList();
-                updateSystemLog(`已加载 ${Object.keys(sessions).length} 个会话`);
+                renderMessages();
             }
 
-            // 保存所有会话
-            function saveSessions() {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-            }
-
-            // 渲染会话列表
-            function renderSessionList() {
-                let html = '<div class="session-header"><span>活跃会话</span><span id="sessionCount">' + Object.keys(sessions).length + '</span></div>';
-                
-                if (Object.keys(sessions).length === 0) {
-                    html += '<div style="padding: 30px 12px; color: #1f5e41; text-align: center;">等待连接...</div>';
-                } else {
-                    // 按最后活跃时间倒序
-                    const sorted = Object.entries(sessions).sort((a, b) => b[1].lastActive - a[1].lastActive);
-                    
-                    sorted.forEach(([id, session]) => {
-                        const lastMsg = session.messages[session.messages.length - 1];
-                        const preview = lastMsg ? lastMsg.content.substring(0, 20) + '...' : '新会话';
-                        const unread = session.messages.filter(m => m.role === 'user' && !m.replied).length;
-                        
-                        html += `
-                            <div class="session-item ${currentSession === id ? 'active' : ''}" data-session="${id}">
-                                <div class="session-id">
-                                    <i class="fa-regular fa-circle"></i>
-                                    ${id}
-                                </div>
-                                <div class="session-preview">${preview}</div>
-                                ${unread > 0 ? '<span class="session-badge">' + unread + '</span>' : ''}
-                            </div>
-                        `;
-                    });
-                }
-                
-                sessionList.innerHTML = html;
-                
-                // 绑定点击事件
-                document.querySelectorAll('.session-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        const id = item.dataset.session;
-                        selectSession(id);
-                    });
-                });
-            }
-
-            // 选择会话
-            function selectSession(sessionId) {
-                currentSession = sessionId;
-                currentSessionId.innerText = sessionId;
-                
-                const session = sessions[sessionId];
-                if (session) {
-                    const date = new Date(session.lastActive);
-                    currentSessionTime.innerText = `最后活跃: ${date.getHours()}:${date.getMinutes().toString().padStart(2,'0')}`;
-                    
-                    // 标记所有消息为已读
-                    session.messages.forEach(m => {
-                        if (m.role === 'user') m.replied = true;
-                    });
-                    saveSessions();
-                    
-                    renderMessages(sessionId);
-                    renderSessionList(); // 更新未读标记
-                    updateSystemLog(`已连接到 ${sessionId}`);
-                }
+            // 保存消息
+            function saveMessages() {
+                const data = {
+                    messages: messages,
+                    lastReplyTime: Date.now()
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             }
 
             // 渲染消息
-            function renderMessages(sessionId) {
-                const session = sessions[sessionId];
-                if (!session || !session.messages) {
-                    messagesArea.innerHTML = '<div class="empty-session"><i class="fa-regular fa-radio"></i><p>无消息记录</p></div>';
+            function renderMessages() {
+                if (!messages || messages.length === 0) {
+                    messageList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fa-regular fa-radio"></i>
+                            <p>等待接收消息...</p>
+                        </div>
+                    `;
+                    messageCounter.innerText = '0';
+                    unreadCount.innerText = '0 条未读';
                     return;
                 }
 
                 let html = '';
-                session.messages.forEach(msg => {
-                    const date = new Date(msg.time);
+                let unread = 0;
+
+                // 倒序显示（最新的在上面）
+                [...messages].reverse().forEach((msg, index) => {
+                    const isUser = msg.role === 'user';
+                    const date = new Date(msg.time || Date.now());
                     const timeStr = `${date.getHours()}:${date.getMinutes().toString().padStart(2,'0')}:${date.getSeconds().toString().padStart(2,'0')}`;
                     
-                    if (msg.role === 'system') {
-                        html += `
-                            <div class="message-item">
-                                <div class="message-meta">
-                                    <span class="message-sender">SYSTEM</span>
-                                    <span class="message-time">${timeStr}</span>
-                                </div>
-                                <div class="message-bubble system">${msg.content}</div>
-                            </div>
-                        `;
-                    } else {
-                        html += `
-                            <div class="message-item">
-                                <div class="message-meta">
-                                    <span class="message-sender">${msg.role === 'user' ? '访客' : 'ADMIN'}</span>
-                                    <span class="message-time">${timeStr}</span>
-                                </div>
-                                <div class="message-bubble ${msg.role === 'user' ? 'user' : ''}">${msg.content}</div>
-                            </div>
-                        `;
+                    // 生成设备标识（基于时间戳和内容）
+                    const deviceId = msg.deviceId || (msg.time ? msg.time.toString().slice(-6) : '未知');
+                    
+                    // 检查是否是未读的用户消息（没有回复标记）
+                    if (isUser && !msg.replied) {
+                        unread++;
                     }
-                });
-                
-                messagesArea.innerHTML = html;
-                messagesArea.scrollTop = messagesArea.scrollHeight;
-            }
 
-            // 接收新消息（从index.html来的）
-            function receiveNewMessage(sessionId, content) {
-                if (!sessions[sessionId]) {
-                    // 新会话
-                    sessions[sessionId] = {
-                        messages: [],
-                        lastActive: Date.now()
-                    };
-                }
-                
-                sessions[sessionId].messages.push({
-                    role: 'user',
-                    content: content,
-                    time: Date.now(),
-                    replied: false
+                    html += `
+                        <div class="message-item ${isUser && !msg.replied ? 'unread' : ''}" data-index="${messages.length - 1 - index}">
+                            <div class="message-header">
+                                <span class="device-tag">
+                                    <i class="fa-regular fa-mobile"></i>
+                                    设备 · ${deviceId}
+                                </span>
+                                <span class="message-time">
+                                    <i class="fa-regular fa-clock" style="margin-right: 4px;"></i>
+                                    ${timeStr}
+                                </span>
+                                ${isUser ? '<span style="color: #19c37d; font-size: 11px;">📱 访客</span>' : '<span style="color: #ffaa5e; font-size: 11px;">🤖 管理员</span>'}
+                            </div>
+                            <div class="message-content">
+                                ${msg.content}
+                            </div>
+                        </div>
+                    `;
                 });
-                
-                sessions[sessionId].lastActive = Date.now();
-                saveSessions();
-                
-                // 如果当前正在查看这个会话，立即显示
-                if (currentSession === sessionId) {
-                    renderMessages(sessionId);
-                }
-                
-                // 更新列表
-                renderSessionList();
-                
-                // 系统提示
-                updateSystemLog(`📡 收到来自 ${sessionId} 的新消息`);
-                
-                // 震动提示
-                if (window.navigator && window.navigator.vibrate) {
-                    window.navigator.vibrate(200);
+
+                messageList.innerHTML = html;
+                messageCounter.innerText = messages.length;
+                unreadCount.innerText = unread + ' 条未读';
+
+                // 如果有未读消息，自动滚动到最新
+                if (unread > 0) {
+                    const container = document.getElementById('messagesContainer');
+                    container.scrollTop = 0; // 滚动到顶部看最新消息
                 }
             }
 
             // 发送回复
             function sendReply() {
-                if (!currentSession) {
-                    updateSystemLog('⚠️ 请先选择一个会话');
-                    return;
-                }
-                
                 const reply = replyInput.value.trim();
                 if (reply === '') return;
-                
-                const session = sessions[currentSession];
-                if (!session) return;
-                
+
+                // 找到最新的一条用户消息对应的设备
+                let targetDevice = null;
+                for (let i = messages.length - 1; i >= 0; i--) {
+                    if (messages[i].role === 'user') {
+                        targetDevice = messages[i].deviceId || messages[i].time;
+                        break;
+                    }
+                }
+
                 // 添加回复
-                session.messages.push({
+                messages.push({
                     role: 'assistant',
                     content: reply,
-                    time: Date.now()
+                    time: Date.now(),
+                    deviceId: targetDevice || ('admin_' + Date.now())
                 });
-                
-                session.lastActive = Date.now();
-                saveSessions();
-                
-                // 更新界面
-                renderMessages(currentSession);
-                renderSessionList();
-                
+
+                saveMessages();
+                renderMessages();
+
                 // 清空输入
                 replyInput.value = '';
-                
-                // 系统日志
-                updateSystemLog(`✅ 回复已发送至 ${currentSession}`);
-                
+
                 // 震动反馈
                 if (window.navigator && window.navigator.vibrate) {
-                    window.navigator.vibrate(50);
+                    window.navigator.vibrate(20);
                 }
             }
 
-            // 更新系统日志
-            function updateSystemLog(msg) {
-                systemLog.innerHTML = `<i class="fa-regular fa-circle-info"></i> ${msg} [${new Date().toLocaleTimeString()}]`;
+            // 标记消息为已读（当点击回复时）
+            function markMessagesAsRead() {
+                let marked = false;
+                messages.forEach(msg => {
+                    if (msg.role === 'user' && !msg.replied) {
+                        msg.replied = true;
+                        marked = true;
+                    }
+                });
+                if (marked) {
+                    saveMessages();
+                    renderMessages();
+                }
             }
 
-            // 检查来自index的消息（模拟跨页面通信）
+            // 检查新消息（从 index.html 来）
             function checkForNewMessages() {
                 try {
-                    // 这里应该是从index的localStorage读取
-                    // 但为了演示，我们模拟一下
-                    const dummyKey = 'temp_incoming';
-                    const incoming = localStorage.getItem(dummyKey);
-                    if (incoming) {
-                        const data = JSON.parse(incoming);
-                        receiveNewMessage(data.sessionId, data.content);
-                        localStorage.removeItem(dummyKey);
+                    const saved = localStorage.getItem(STORAGE_KEY);
+                    if (saved) {
+                        const data = JSON.parse(saved);
+                        if (data.messages && data.messages.length > messages.length) {
+                            // 发现新消息
+                            const oldLength = messages.length;
+                            messages = data.messages;
+                            
+                            // 检查是否有新的用户消息
+                            for (let i = oldLength; i < messages.length; i++) {
+                                if (messages[i].role === 'user') {
+                                    // 新消息到达提示
+                                    if (window.navigator && window.navigator.vibrate) {
+                                        window.navigator.vibrate([100, 50, 100]);
+                                    }
+                                    
+                                    // 更新标题提示
+                                    document.title = '📨 新消息 - 控制端';
+                                    setTimeout(() => {
+                                        document.title = '控制端';
+                                    }, 3000);
+                                    break;
+                                }
+                            }
+                            
+                            renderMessages();
+                        }
                     }
-                } catch (e) {}
+                } catch (e) {
+                    console.log('检查新消息失败', e);
+                }
             }
 
-            // 快捷指令
-            document.querySelectorAll('.cmd-tag').forEach(cmd => {
-                cmd.addEventListener('click', () => {
-                    replyInput.value = cmd.dataset.cmd;
+            // 快捷短语
+            document.querySelectorAll('.phrase').forEach(phrase => {
+                phrase.addEventListener('click', () => {
+                    replyInput.value = phrase.dataset.text;
                     replyInput.focus();
                 });
             });
@@ -761,6 +523,7 @@
             // 发送按钮
             sendBtn.addEventListener('click', (e) => {
                 e.preventDefault();
+                markMessagesAsRead(); // 点击发送时标记所有为已读
                 sendReply();
             });
 
@@ -768,33 +531,29 @@
             replyInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
+                    markMessagesAsRead();
                     sendReply();
                 }
             });
 
-            // 刷新按钮
-            document.getElementById('refreshBtn').addEventListener('click', () => {
-                loadSessions();
-                updateSystemLog('🔄 刷新会话列表');
+            // 点击消息列表（用于标记已读）
+            messageList.addEventListener('click', () => {
+                markMessagesAsRead();
             });
 
-            // 模拟接收消息（测试用）
-            window.testReceive = function(sessionId, msg) {
-                receiveNewMessage(sessionId || generateSessionId(), msg || '测试消息');
-            };
-
             // 初始化
-            loadSessions();
+            loadMessages();
             
-            // 定期检查新消息
+            // 每秒检查新消息
             setInterval(checkForNewMessages, 1000);
-            
-            // 如果有会话，默认选中第一个
-            setTimeout(() => {
-                if (Object.keys(sessions).length > 0 && !currentSession) {
-                    selectSession(Object.keys(sessions)[0]);
+
+            // 页面可见时刷新
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    loadMessages();
+                    markMessagesAsRead();
                 }
-            }, 500);
+            });
         })();
     </script>
 </body>
