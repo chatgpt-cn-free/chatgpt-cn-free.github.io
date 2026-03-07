@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>admin · 控制台</title>
+    <title>admin · 控制端</title>
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    
     <style>
         * {
             margin: 0;
@@ -25,6 +21,7 @@
             color: #ececf1;
         }
 
+        /* 头部 */
         .header {
             background: #202123;
             border-radius: 20px;
@@ -84,6 +81,7 @@
             100% { opacity: 1; }
         }
 
+        /* 消息列表 */
         .messages-container {
             background: #202123;
             border-radius: 20px;
@@ -131,7 +129,6 @@
             align-items: center;
             gap: 15px;
             margin-bottom: 12px;
-            flex-wrap: wrap;
         }
 
         .device-tag {
@@ -159,11 +156,12 @@
             color: #ececf1;
             font-size: 15px;
             line-height: 1.6;
-            padding-left: 0;
+            padding-left: 35px;
             white-space: pre-wrap;
             word-break: break-word;
         }
 
+        /* 回复区域 */
         .reply-area {
             background: #202123;
             border-radius: 20px;
@@ -228,6 +226,7 @@
             transform: scale(0.95);
         }
 
+        /* 快捷短语 */
         .quick-phrases {
             display: flex;
             gap: 10px;
@@ -252,6 +251,7 @@
             border-color: #19c37d;
         }
 
+        /* 空状态 */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -264,6 +264,7 @@
             opacity: 0.5;
         }
 
+        /* 计数器 */
         .counter {
             background: #19c37d;
             color: #202123;
@@ -279,13 +280,13 @@
         <div class="header-left">
             <i class="fa-regular fa-gauge-high"></i>
             <div>
-                <h1>控制台 · 管理员</h1>
-                <p>所有设备的消息实时同步</p>
+                <h1>控制端</h1>
+                <p>所有设备的消息都会显示在这里</p>
             </div>
         </div>
         <div class="status-badge">
             <div class="dot"></div>
-            <span>在线</span>
+            <span>监听中</span>
             <span class="counter" id="messageCounter">0</span>
         </div>
     </div>
@@ -306,7 +307,7 @@
     <div class="reply-area">
         <div class="reply-label">
             <i class="fa-regular fa-reply"></i>
-            回复 (将发送给所有设备)
+            回复 (将发送给最新消息的设备)
         </div>
         <div class="reply-input-wrapper">
             <input type="text" id="replyInput" placeholder="输入回复内容..." autocomplete="off">
@@ -323,162 +324,91 @@
         </div>
     </div>
 
-    <script>
-        (function() {
-            // ===== Firebase 配置（和index.html一样） =====
-            const firebaseConfig = {
-                apiKey: "AIzaSyCVVmXYADavtT2VUHlXYE4f2eA6SsC1Llg",
-                authDomain: "chatgpt-cn-free.firebaseapp.com",
-                projectId: "chatgpt-cn-free",
-                storageBucket: "chatgpt-cn-free.firebasestorage.app",
-                messagingSenderId: "1064840278974",
-                appId: "1:1064840278974:web:f992349f55fb6db030bfef"
-            };
-            
-            // 初始化 Firebase
-            firebase.initializeApp(firebaseConfig);
-            const db = firebase.firestore();
+    <script type="module">
 
-            // DOM 元素
-            const messageList = document.getElementById('messageList');
-            const replyInput = document.getElementById('replyInput');
-            const sendBtn = document.getElementById('sendReplyBtn');
-            const messageCounter = document.getElementById('messageCounter');
-            const unreadCount = document.getElementById('unreadCount');
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+getFirestore,
+collection,
+addDoc,
+onSnapshot,
+query,
+orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-            let messages = [];
+const firebaseConfig = {
+apiKey: "AIzaSyCVVmXYADavtT2VUHlXYE4f2eA6SsC1Llg",
+authDomain: "chatgpt-cn-free.firebaseapp.com",
+projectId: "chatgpt-cn-free",
+storageBucket: "chatgpt-cn-free.firebasestorage.app",
+messagingSenderId: "1064840278974",
+appId: "1:1064840278974:web:f992349f55fb6db030bfef"
+};
 
-            // 监听消息
-            db.collection('messages')
-                .orderBy('time', 'asc')
-                .onSnapshot((snapshot) => {
-                    messages = [];
-                    let unread = 0;
-                    
-                    snapshot.forEach((doc) => {
-                        const msg = doc.data();
-                        msg.id = doc.id;
-                        messages.push(msg);
-                        
-                        if (msg.role === 'user' && !msg.replied) {
-                            unread++;
-                        }
-                    });
-                    
-                    renderMessages(unread);
-                    
-                    // 新消息提醒
-                    snapshot.docChanges().forEach((change) => {
-                        if (change.type === 'added') {
-                            const msg = change.doc.data();
-                            if (msg.role === 'user') {
-                                if (window.navigator && window.navigator.vibrate) {
-                                    window.navigator.vibrate([100, 50, 100]);
-                                }
-                                document.title = '📨 新消息 - 控制台';
-                                setTimeout(() => {
-                                    document.title = '控制台 · 管理员';
-                                }, 3000);
-                            }
-                        }
-                    });
-                });
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-            // 渲染消息
-            function renderMessages(unread = 0) {
-                if (messages.length === 0) {
-                    messageList.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fa-regular fa-radio"></i>
-                            <p>等待接收消息...</p>
-                        </div>
-                    `;
-                    messageCounter.innerText = '0';
-                    unreadCount.innerText = '0 条未读';
-                    return;
-                }
+const messageList=document.getElementById("messageList");
+const replyInput=document.getElementById("replyInput");
+const sendBtn=document.getElementById("sendReplyBtn");
 
-                let html = '';
+let latestDevice=null;
 
-                [...messages].reverse().forEach((msg) => {
-                    const isUser = msg.role === 'user';
-                    const date = new Date(msg.time || Date.now());
-                    const timeStr = `${date.getHours()}:${date.getMinutes().toString().padStart(2,'0')}:${date.getSeconds().toString().padStart(2,'0')}`;
-                    
-                    const deviceId = msg.deviceId ? msg.deviceId.slice(-6) : '未知';
+function renderMessage(m){
 
-                    html += `
-                        <div class="message-item ${isUser && !msg.replied ? 'unread' : ''}" data-id="${msg.id}">
-                            <div class="message-header">
-                                <span class="device-tag">
-                                    <i class="fa-regular fa-mobile"></i>
-                                    设备 · ${deviceId}
-                                </span>
-                                <span class="message-time">
-                                    <i class="fa-regular fa-clock" style="margin-right: 4px;"></i>
-                                    ${timeStr}
-                                </span>
-                                <span style="color: ${isUser ? '#19c37d' : '#ffaa5e'}; font-size: 11px;">
-                                    ${isUser ? '📱 访客' : '🤖 管理员'}
-                                </span>
-                            </div>
-                            <div class="message-content">
-                                ${msg.content}
-                            </div>
-                        </div>
-                    `;
-                });
+const div=document.createElement("div");
+div.className="message-item";
 
-                messageList.innerHTML = html;
-                messageCounter.innerText = messages.length;
-                unreadCount.innerText = unread + ' 条未读';
-            }
+div.innerHTML=`
+<div class="message-header">
+<span class="device-tag">设备 · ${m.deviceId}</span>
+</div>
+<div class="message-content">${m.content}</div>
+`;
 
-            // 发送回复
-            async function sendReply() {
-                const reply = replyInput.value.trim();
-                if (reply === '') return;
+messageList.prepend(div);
 
-                await db.collection('messages').add({
-                    role: 'assistant',
-                    content: reply,
-                    time: Date.now(),
-                    replied: true
-                });
+if(m.role==="user"){
+latestDevice=m.deviceId;
+}
 
-                const snapshot = await db.collection('messages').where('role', '==', 'user').get();
-                const batch = db.batch();
-                snapshot.forEach((doc) => {
-                    batch.update(doc.ref, { replied: true });
-                });
-                await batch.commit();
+}
 
-                replyInput.value = '';
+const q=query(collection(db,"messages"),orderBy("time"));
 
-                if (window.navigator && window.navigator.vibrate) {
-                    window.navigator.vibrate(20);
-                }
-            }
+onSnapshot(q,(snap)=>{
 
-            document.querySelectorAll('.phrase').forEach(phrase => {
-                phrase.addEventListener('click', () => {
-                    replyInput.value = phrase.dataset.text;
-                    replyInput.focus();
-                });
-            });
+snap.docChanges().forEach(change=>{
 
-            sendBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                sendReply();
-            });
+renderMessage(change.doc.data());
 
-            replyInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    sendReply();
-                }
-            });
-        })();
-    </script>
+});
+
+});
+
+sendBtn.onclick=async()=>{
+
+const text=replyInput.value.trim();
+if(text==="")return;
+
+await addDoc(collection(db,"messages"),{
+role:"assistant",
+content:text,
+deviceId:latestDevice,
+time:Date.now()
+});
+
+replyInput.value="";
+
+};
+
+replyInput.addEventListener("keydown",(e)=>{
+if(e.key==="Enter"){
+e.preventDefault();
+sendBtn.click();
+}
+});
+
+</script>
 </body>
 </html>
