@@ -313,195 +313,162 @@
         </div>
     </div>
 
-    <script>
-        (function() {
-            // ===== Firebase 配置 =====
-            const firebaseConfig = {
-                apiKey: "AIzaSyCVVmXYADavtT2VUHlXYE4f2eA6SsC1Llg",
-                authDomain: "chatgpt-cn-free.firebaseapp.com",
-                projectId: "chatgpt-cn-free",
-                storageBucket: "chatgpt-cn-free.firebasestorage.app",
-                messagingSenderId: "1064840278974",
-                appId: "1:1064840278974:web:f992349f55fb6db030bfef"
-            };
-            
-            // 初始化 Firebase
-            firebase.initializeApp(firebaseConfig);
-            const db = firebase.firestore();
-            
-            // 生成设备ID
-            let deviceId = localStorage.getItem('device_id');
-            if (!deviceId) {
-                deviceId = 'device_' + Math.random().toString(36).substring(2, 10);
-                localStorage.setItem('device_id', deviceId);
-            }
+    <script type="module">
 
-            // DOM 元素
-            const messageGroup = document.getElementById('messageGroup');
-            const userInput = document.getElementById('userMessageInput');
-            const sendBtn = document.getElementById('sendUserMsgBtn');
-            const messageContainer = document.getElementById('messageContainer');
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+getFirestore,
+collection,
+addDoc,
+onSnapshot,
+query,
+orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-            let isThinking = false;
+const firebaseConfig = {
+apiKey: "AIzaSyCVVmXYADavtT2VUHlXYE4f2eA6SsC1Llg",
+authDomain: "chatgpt-cn-free.firebaseapp.com",
+projectId: "chatgpt-cn-free",
+storageBucket: "chatgpt-cn-free.firebasestorage.app",
+messagingSenderId: "1064840278974",
+appId: "1:1064840278974:web:f992349f55fb6db030bfef"
+};
 
-            // 监听新消息
-            db.collection('messages')
-                .orderBy('time', 'asc')
-                .onSnapshot((snapshot) => {
-                    snapshot.docChanges().forEach((change) => {
-                        if (change.type === 'added') {
-                            const msg = change.doc.data();
-                            
-                            // 如果是自己发的消息，不重复显示
-                            if (msg.deviceId === deviceId && msg.role === 'user') {
-                                return;
-                            }
-                            
-                            // 移除思考动画
-                            if (msg.role === 'assistant' && isThinking) {
-                                isThinking = false;
-                                removeThinkingAnimation();
-                            }
-                            
-                            // 显示消息
-                            appendMessageToDOM(msg.role, msg.content, msg.time);
-                            
-                            setTimeout(() => {
-                                messageContainer.scrollTop = messageContainer.scrollHeight;
-                            }, 100);
-                        }
-                    });
-                });
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-            // 发送消息
-            async function sendUserMessage() {
-                const content = userInput.value.trim();
-                if (content === '') return;
+const messageGroup = document.getElementById('messageGroup');
+const userInput = document.getElementById('userMessageInput');
+const sendBtn = document.getElementById('sendUserMsgBtn');
+const messageContainer = document.getElementById('messageContainer');
 
-                // 显示用户消息
-                appendMessageToDOM('user', content, Date.now());
-                
-                // 保存到 Firestore
-                await db.collection('messages').add({
-                    role: 'user',
-                    content: content,
-                    time: Date.now(),
-                    deviceId: deviceId
-                });
+let deviceId = localStorage.getItem("device_id");
+if(!deviceId){
+deviceId = Math.random().toString(36).substring(2,8);
+localStorage.setItem("device_id",deviceId);
+}
 
-                // 清空输入
-                userInput.value = '';
-                userInput.style.height = 'auto';
+function appendMessage(role,text,time){
 
-                // 显示思考动画
-                isThinking = true;
-                addThinkingAnimation();
-                
-                setTimeout(() => {
-                    messageContainer.scrollTop = messageContainer.scrollHeight;
-                }, 50);
-            }
+const row=document.createElement("div");
+row.className=`message-row ${role==="user"?"user-row":"assistant-row"}`;
 
-            // 添加消息到DOM
-            function appendMessageToDOM(role, content, timestamp) {
-                const rowDiv = document.createElement('div');
-                rowDiv.className = `message-row ${role === 'user' ? 'user-row' : 'assistant-row'}`;
+const avatar=document.createElement("div");
+avatar.className=`message-avatar ${role==="user"?"user-avatar-icon":"assistant-avatar-icon"}`;
+avatar.innerHTML=role==="user"
+?'<i class="fa-regular fa-user"></i>'
+:'<i class="fa-regular fa-sparkles"></i>';
 
-                const avatarDiv = document.createElement('div');
-                avatarDiv.className = `message-avatar ${role === 'user' ? 'user-avatar-icon' : 'assistant-avatar-icon'}`;
-                avatarDiv.innerHTML = role === 'user' ? '<i class="fa-regular fa-user"></i>' : '<i class="fa-regular fa-sparkles"></i>';
+const content=document.createElement("div");
+content.className="message-content";
 
-                const contentDiv = document.createElement('div');
-                contentDiv.className = 'message-content';
+const header=document.createElement("div");
+header.className="message-header";
 
-                const headerDiv = document.createElement('div');
-                headerDiv.className = 'message-header';
+const sender=document.createElement("span");
+sender.className="message-sender";
+sender.innerText=role==="user"?"访客":"ChatGPT";
 
-                const senderSpan = document.createElement('span');
-                senderSpan.className = 'message-sender';
-                senderSpan.innerText = role === 'user' ? '访客' : 'ChatGPT';
+const timeSpan=document.createElement("span");
+timeSpan.className="message-time";
 
-                const timeSpan = document.createElement('span');
-                timeSpan.className = 'message-time';
-                const date = new Date(timestamp || Date.now());
-                timeSpan.innerText = `${date.getHours()}:${date.getMinutes().toString().padStart(2,'0')}`;
+const d=new Date(time);
+timeSpan.innerText=d.getHours()+":"+String(d.getMinutes()).padStart(2,"0");
 
-                const textDiv = document.createElement('div');
-                textDiv.className = 'message-text';
-                textDiv.innerText = content;
+const textDiv=document.createElement("div");
+textDiv.className="message-text";
+textDiv.innerText=text;
 
-                headerDiv.appendChild(senderSpan);
-                headerDiv.appendChild(timeSpan);
-                contentDiv.appendChild(headerDiv);
-                contentDiv.appendChild(textDiv);
+header.appendChild(sender);
+header.appendChild(timeSpan);
+content.appendChild(header);
+content.appendChild(textDiv);
 
-                rowDiv.appendChild(avatarDiv);
-                rowDiv.appendChild(contentDiv);
-                messageGroup.appendChild(rowDiv);
-            }
+row.appendChild(avatar);
+row.appendChild(content);
 
-            // 添加思考动画
-            function addThinkingAnimation() {
-                const thinkingRow = document.createElement('div');
-                thinkingRow.className = 'message-row assistant-row thinking-row';
-                thinkingRow.id = 'thinkingIndicator';
+messageGroup.appendChild(row);
 
-                const avatarDiv = document.createElement('div');
-                avatarDiv.className = 'message-avatar assistant-avatar-icon';
-                avatarDiv.innerHTML = '<i class="fa-regular fa-sparkles"></i>';
+messageContainer.scrollTop=messageContainer.scrollHeight;
 
-                const contentDiv = document.createElement('div');
-                contentDiv.className = 'message-content';
+}
 
-                const thinkingDiv = document.createElement('div');
-                thinkingDiv.className = 'thinking-content';
-                
-                const dotsDiv = document.createElement('div');
-                dotsDiv.className = 'thinking-dots';
-                dotsDiv.innerHTML = '<span></span><span></span><span></span>';
-                
-                const textSpan = document.createElement('span');
-                textSpan.className = 'thinking-text';
-                textSpan.innerText = 'ChatGPT 正在输入...';
+sendBtn.onclick=async()=>{
 
-                thinkingDiv.appendChild(dotsDiv);
-                thinkingDiv.appendChild(textSpan);
-                contentDiv.appendChild(thinkingDiv);
+const msg=userInput.value.trim();
+if(msg==="")return;
 
-                thinkingRow.appendChild(avatarDiv);
-                thinkingRow.appendChild(contentDiv);
-                messageGroup.appendChild(thinkingRow);
-            }
+appendMessage("user",msg,Date.now());
 
-            // 移除思考动画
-            function removeThinkingAnimation() {
-                const thinking = document.getElementById('thinkingIndicator');
-                if (thinking) {
-                    thinking.remove();
-                }
-            }
+userInput.value="";
 
-            // 事件监听
-            sendBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                sendUserMessage();
-            });
+await addDoc(collection(db,"messages"),{
+role:"user",
+content:msg,
+deviceId:deviceId,
+time:Date.now()
+});
 
-            userInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendUserMessage();
-                }
-            });
+showThinking();
 
-            userInput.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = (this.scrollHeight) + 'px';
-            });
+};
 
-            // 初始化
-            userInput.focus();
-        })();
-    </script>
+userInput.addEventListener("keydown",(e)=>{
+if(e.key==="Enter"&&!e.shiftKey){
+e.preventDefault();
+sendBtn.click();
+}
+});
+
+function showThinking(){
+
+const row=document.createElement("div");
+row.className="message-row assistant-row";
+row.id="thinking";
+
+row.innerHTML=`
+<div class="message-avatar assistant-avatar-icon">
+<i class="fa-regular fa-sparkles"></i>
+</div>
+<div class="message-content">
+<div class="thinking-content">
+<div class="thinking-dots"><span></span><span></span><span></span></div>
+<span class="thinking-text">ChatGPT 正在输入...</span>
+</div>
+</div>
+`;
+
+messageGroup.appendChild(row);
+
+messageContainer.scrollTop=messageContainer.scrollHeight;
+
+}
+
+function removeThinking(){
+const t=document.getElementById("thinking");
+if(t)t.remove();
+}
+
+const q=query(collection(db,"messages"),orderBy("time"));
+
+onSnapshot(q,(snap)=>{
+
+snap.docChanges().forEach(change=>{
+
+const data=change.doc.data();
+
+if(data.role==="assistant" && data.deviceId===deviceId){
+
+removeThinking();
+
+appendMessage("assistant",data.content,data.time);
+
+}
+
+});
+
+});
+
+</script>
 </body>
 </html>
